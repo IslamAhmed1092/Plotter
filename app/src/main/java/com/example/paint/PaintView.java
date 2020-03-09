@@ -1,18 +1,31 @@
 package com.example.paint;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
+import android.os.AsyncTask;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.net.Socket;
 
 public class PaintView extends View {
     public ViewGroup.LayoutParams params;
     private Path path = new Path();
     private Paint brush = new Paint();
+
+    private String mPoint;
+    private String IpAddress = "192.168.0.117";
+    private int Port = 8090;
 
     public PaintView(Context context) {
         super(context);
@@ -20,15 +33,17 @@ public class PaintView extends View {
         brush.setColor(Color.RED);
         brush.setStyle(Paint.Style.STROKE);
         brush.setStrokeJoin(Paint.Join.ROUND);
-        brush.setStrokeWidth(8f);
+        brush.setStrokeWidth(10f);
 
-        params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         float pointX = event.getX();
         float pointY = event.getY();
+        mPoint="("+ (pointX/10.0) + "," + (pointY/10.0) + ")";
 
         switch (event.getAction()){
             case MotionEvent.ACTION_DOWN:
@@ -36,6 +51,10 @@ public class PaintView extends View {
                 return true;
             case MotionEvent.ACTION_MOVE:
                 path.lineTo(pointX, pointY);
+                Log.d( "point ",mPoint);
+                //Now send to WI_FI
+                MyClientTask myClientTask = new MyClientTask(mPoint);
+                myClientTask.execute();
                 break;
             default:
                 return false;
@@ -49,4 +68,45 @@ public class PaintView extends View {
         canvas.drawPath(path, brush);
     }
 
+
+    @SuppressLint("StaticFieldLeak")
+    public class MyClientTask extends AsyncTask<Void, Void, Void> {
+        String response = "";
+        String msgToServer;
+
+        MyClientTask(String msgTo) {
+            msgToServer = msgTo;
+        }
+
+        @Override
+        protected Void doInBackground(Void... arg0) {
+            Socket socket = null;
+            DataOutputStream dataOutputStream = null;
+
+            try {
+                socket = new Socket(IpAddress, Port);
+                dataOutputStream = new DataOutputStream(socket.getOutputStream());
+
+                if(!msgToServer.equals(""))
+                    dataOutputStream.writeUTF(msgToServer + "$");
+
+            } catch (IOException e) { }
+            finally {
+                if (socket != null) {
+                    try {
+                        socket.close();
+                    } catch (IOException e) {}
+                }
+                if (dataOutputStream != null) {
+                    try {
+                        dataOutputStream.close();
+                    } catch (IOException e) {}
+                }
+            }
+            return null;
+        }
+
+    }
+
 }
+

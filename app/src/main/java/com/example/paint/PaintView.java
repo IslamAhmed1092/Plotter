@@ -17,14 +17,16 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class PaintView extends View {
     public ViewGroup.LayoutParams params;
     private Path path = new Path();
     private Paint brush = new Paint();
+    private String pointsList="" ;
 
     private String mPoint;
-    private String IpAddress = "192.168.0.117";
+    private String IpAddress = "192.168.4.1";
     private int Port = 8090;
 
     public PaintView(Context context) {
@@ -33,8 +35,7 @@ public class PaintView extends View {
         brush.setColor(Color.RED);
         brush.setStyle(Paint.Style.STROKE);
         brush.setStrokeJoin(Paint.Join.ROUND);
-        brush.setStrokeWidth(10f);
-
+        brush.setStrokeWidth(8f);
         params = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
     }
@@ -43,7 +44,8 @@ public class PaintView extends View {
     public boolean onTouchEvent(MotionEvent event) {
         float pointX = event.getX();
         float pointY = event.getY();
-        mPoint="("+ (pointX/10.0) + "," + (pointY/10.0) + ")";
+
+        mPoint="("+ (int)(pointX/8) + "," + (int)(pointY/8) + ")";
 
         switch (event.getAction()){
             case MotionEvent.ACTION_DOWN:
@@ -52,17 +54,21 @@ public class PaintView extends View {
             case MotionEvent.ACTION_MOVE:
                 path.lineTo(pointX, pointY);
                 Log.d( "point ",mPoint);
+                pointsList+=mPoint+"\n";
                 //Now send to WI_FI
-                MyClientTask myClientTask = new MyClientTask(mPoint);
-                myClientTask.execute();
                 break;
+            case MotionEvent.ACTION_UP:
+                Log.d("up", "7sal");
+                MyClientTask myClientTask = new MyClientTask(pointsList);
+                myClientTask.execute();
+                pointsList="";
             default:
                 return false;
         }
         postInvalidate();
         return false;
     }
-
+boolean working=false;
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.drawPath(path, brush);
@@ -72,10 +78,19 @@ public class PaintView extends View {
     @SuppressLint("StaticFieldLeak")
     public class MyClientTask extends AsyncTask<Void, Void, Void> {
         String response = "";
-        String msgToServer;
+        String msgToServer="hello world";
 
-        MyClientTask(String msgTo) {
-            msgToServer = msgTo;
+        public void setMsgToServer(String msgToServer) {
+            this.msgToServer = msgToServer;
+        }
+
+        MyClientTask(String msgToServer) {
+           this.msgToServer=msgToServer;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
         }
 
         @Override
